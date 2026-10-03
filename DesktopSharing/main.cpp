@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
-	
+	// daolv
 	if (timer_id) {
 		SDL_RemoveTimer(timer_id);
 	}
