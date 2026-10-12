@@ -1,24 +1,86 @@
-name: SonarQube
+
+name: C++ Build and SonarQube Scan
 
 on:
   push:
     branches:
-      - master
+      - "**"
 
   pull_request:
+    branches:
+      - master
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+permissions:
+  contents: read
 
 jobs:
-  sonar:
-    runs-on: ubuntu-latest
+  build-and-scan:
+    name: Build VS2019 and Sonar Scan
+
+    runs-on:
+      - self-hosted
+      - windows
+      - x64
+      - windows-vs2019
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
+      - name: Checkout source
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: SonarQube Scan
-        uses: SonarSource/sonarqube-scan-action@v7
+      - name: Check build environment
+        shell: powershell
+        run: |
+          $msbuild = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
+
+          if (-not (Test-Path $msbuild)) {
+            throw "MSBuild not found: $msbuild"
+          }
+
+          & $msbuild -version
+          if ($LASTEXITCODE -ne 0) {
+            throw "Cannot run MSBuild"
+          }
+
+      - name: Build C++ solution
+        shell: powershell
+        run: |
+          $msbuild = "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\MSBuild.exe"
+          $solution = "DesktopSharing.sln"
+
+          & $msbuild $solution `
+            /t:Rebuild `
+            /p:Configuration=Release `
+            /p:Platform=x86 `
+            /m
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "C++ build failed"
+          }
+
+      - name: Run SonarScanner CLI
+        shell: powershell
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: http://localhost:9000
+        run: |
+          $scanner = "E:\Tools\sonar-scanner-8.1.0.6389-windows-x64\bin\sonar-scanner.bat"
+
+          if (-not (Test-Path $scanner)) {
+            throw "SonarScanner not found: $scanner"
+          }
+
+          #& $scanner
+          # Ghi rõ thư mục gốc của project
+          & $scanner `
+            "-Dsonar.projectBaseDir=$env:GITHUB_WORKSPACE" `
+            "-Dsonar.token=$env:SONAR_TOKEN"
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "SonarScanner failed"
+          }

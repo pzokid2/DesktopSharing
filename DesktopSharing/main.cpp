@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 {
 	MainWindow window;
 	SDL_TimerID timer_id = 0;
-
+	// test cmt
 	if (window.Create()) {
 		if (ScreenLive::Instance().StartCapture() >= 0) {
 			timer_id = SDL_AddTimer(1000, TimerCallback, &window);
