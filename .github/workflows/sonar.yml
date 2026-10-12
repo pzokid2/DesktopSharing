@@ -21,11 +21,7 @@ jobs:
   build-and-scan:
     name: Build VS2019 and Sonar Scan
 
-    runs-on:
-      - self-hosted
-      - windows
-      - x64
-      - windows-vs2019
+    runs-on: [self-hosted, Windows, X64]
 
     steps:
       - name: Checkout source
